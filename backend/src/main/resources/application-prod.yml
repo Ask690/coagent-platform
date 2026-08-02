@@ -1,0 +1,44 @@
+# ============ 生产环境配置（-Dspring.profiles.active=prod） ============
+server:
+  port: 8080
+
+spring:
+  # 前端静态文件：默认外部目录 /opt/coagent/static（部署时拷贝 dist 到此），可用 COAGENT_STATIC_DIR 覆盖
+  web:
+    resources:
+      static-locations: ${COAGENT_STATIC_DIR:file:/opt/coagent/static/},classpath:/static/
+
+  # 生产数据库：默认 H2 文件库（轻量演示），生产建议 MySQL（见 application-mysql.yml）
+  datasource:
+    url: jdbc:h2:file:/opt/coagent/data/coagent;MODE=MySQL;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  h2:
+    console:
+      enabled: false   # 生产关闭 H2 控制台
+
+  ai:
+    model:
+      embedding: ${AI_EMBEDDING_PROVIDER:mock}   # 若接真实 embedding 服务可改 openai
+    openai:
+      base-url: ${AI_BASE_URL:https://api.deepseek.com}
+      api-key: ${DEEPSEEK_API_KEY:}               # 必填：真实 DeepSeek Key
+      chat:
+        options:
+          model: ${AI_MODEL:deepseek-chat}
+          temperature: 0.7
+          max-tokens: 1024
+
+coagent:
+  ai:
+    mock: ${COAGENT_MOCK:false}   # 生产默认接真实模型
+  rag:
+    embedding-mode: ${RAG_MODE:lexical}
+    top-k: 3
+    chunk-size: 280
+    chunk-overlap: 60
+
+logging:
+  level:
+    root: info
