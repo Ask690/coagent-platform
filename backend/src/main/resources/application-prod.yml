@@ -3,10 +3,10 @@ server:
   port: 8080
 
 spring:
-  # 前端静态文件：默认外部目录 /opt/coagent/static（部署时拷贝 dist 到此），可用 COAGENT_STATIC_DIR 覆盖
+  # 前端静态文件：前端已打进 jar（classpath:/static/），默认即可；如需自定义覆盖，设 COAGENT_STATIC_DIR 指向目录
   web:
     resources:
-      static-locations: ${COAGENT_STATIC_DIR:file:/opt/coagent/static/},classpath:/static/
+      static-locations: classpath:/static/,${COAGENT_STATIC_DIR:file:/opt/coagent/static/}
 
   # 生产数据库：默认 H2 文件库（轻量演示），生产建议 MySQL（见 application-mysql.yml）
   datasource:
@@ -23,7 +23,7 @@ spring:
       embedding: ${AI_EMBEDDING_PROVIDER:mock}   # 若接真实 embedding 服务可改 openai
     openai:
       base-url: ${AI_BASE_URL:https://api.deepseek.com}
-      api-key: ${DEEPSEEK_API_KEY:}               # 必填：真实 DeepSeek Key
+      api-key: ${DEEPSEEK_API_KEY:sk-noop}        # 未配 Key 时占位：mock 模式可演示，接真实模型时设置 DEEPSEEK_API_KEY
       chat:
         options:
           model: ${AI_MODEL:deepseek-chat}

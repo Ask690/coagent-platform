@@ -147,6 +147,53 @@ cd backend
 
 ---
 
+## ☁️ 生产部署（单 jar 全打包 · 最简）
+
+**核心设计**：Maven 打包时自动把前端 `dist` 复制进 jar 的 `/static`（见 `backend/pom.xml` 的 `copy-frontend-dist`）。因此生产部署**只需 1 个 jar 文件**，服务器无需 Node、无需 Maven、无需单独托管静态文件。
+
+### 方式 A：单命令启动（最快）
+
+```bash
+# ① 本机构建（前端自动打进 jar）
+cd backend && ./mvnw -DskipTests package
+#   产物：backend/target/coagent-backend-1.0.0.jar（约 65MB，含全部页面）
+
+# ② 上传到服务器（服务器只需装 JDK 21）
+scp backend/target/coagent-backend-1.0.0.jar root@服务器IP:/opt/coagent/
+
+# ③ 服务器上启动
+DEEPSEEK_API_KEY=sk-你的Key \
+java -Dspring.profiles.active=prod -jar /opt/coagent/coagent-backend-1.0.0.jar
+```
+
+访问 `http://服务器IP:8080`。
+
+### 方式 B：systemd 守护（自动重启 + 开机自启）
+
+```bash
+# 服务器上：上传整个仓库后执行
+export DEEPSEEK_API_KEY=sk-你的Key
+bash deploy/deploy.sh        # 自动拷贝 jar + 注册 systemd 服务
+systemctl start coagent
+tail -f /opt/coagent/logs/app.log
+```
+
+### 生产环境变量（application-prod.yml）
+
+| 变量 | 默认值 | 说明 |
+|---|---|---|
+| `DEEPSEEK_API_KEY` | `sk-noop` | 真实 Key（不设则 Mock 降级，可完整演示） |
+| `COAGENT_MOCK` | `false`(prod) | `true` 强制 Mock |
+| `AI_MODEL` | `deepseek-chat` | 模型名 |
+| `AI_BASE_URL` | `https://api.deepseek.com` | API 地址 |
+| `RAG_MODE` | `lexical` | `vector` 切向量检索 |
+| `COAGENT_STATIC_DIR` | jar 内置 | 自定义静态目录（可选） |
+
+> 生产默认 DB：H2 文件库 `/opt/coagent/data/coagent`，零依赖可跑；接 MySQL 见 `application-mysql.yml`。
+> 生产已关闭 H2 控制台，日志落 `/opt/coagent/logs/app.log`。
+
+---
+
 ## 💡 项目亮点（面试讲稿要点）
 
 1. **真正的多智能体协作**：Supervisor 统一编排 + 专精 Agent + 多步链路（Chain），各 Agent 职责单一、提示词独立，符合 Agent 工程化的最佳实践。
