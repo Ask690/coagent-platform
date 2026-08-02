@@ -194,6 +194,41 @@ tail -f /opt/coagent/logs/app.log
 
 ---
 
+## 🌐 免费上线演示（无服务器 · 内网穿透）
+
+**不想买服务器？** 用 cloudflared 把本地后端直接暴露成公网 HTTPS 地址——**免注册、免登录、无需域名**，10 分钟上线，手机/面试官可直接访问。
+
+### 步骤
+
+```bash
+# ① 本机构建单 jar（含前端页面）
+cd backend && ./mvnw -DskipTests package
+
+# ② 启动后端（接真实模型）
+cd backend
+COAGENT_MOCK=false DEEPSEEK_API_KEY=sk-你的Key \
+  java -Dspring.profiles.active=prod -jar target/coagent-backend-1.0.0.jar
+
+# ③ 下载 cloudflared（Windows：cloudflared-windows-amd64.exe，放任意目录）
+#    GitHub releases: cloudflare/cloudflared → latest
+
+# ④ 建立公网隧道（映射本地 8080）
+cloudflared.exe tunnel --url http://localhost:8080
+# 输出中出现：https://xxxx-xxx-xxxx.trycloudflare.com ← 这就是公网地址
+```
+
+**然后**把输出的 `https://xxx.trycloudflare.com` 发给任何人，对方即可访问完整的客服系统。
+
+> 已实测验证：公网地址 → Cloudflare → 本地后端 → DeepSeek 真实模型，全链路可用（含多步链路 CHAIN 编排 + 工具调用）。
+
+### 免费方案的局限
+
+- **地址会变**：`trycloudflare.com` 临时域名在隧道重启后变化，且本机关机即失效（本地进程被穿透）。
+- **稳定方案**：注册 cloudflared 账号用**命名隧道**固定域名（免费），或直接买云服务器跑 `deploy.sh`。
+- **适合场景**：面试演示、临时给客户看 Demo、开发期远程调试。
+
+---
+
 ## 💡 项目亮点（面试讲稿要点）
 
 1. **真正的多智能体协作**：Supervisor 统一编排 + 专精 Agent + 多步链路（Chain），各 Agent 职责单一、提示词独立，符合 Agent 工程化的最佳实践。
