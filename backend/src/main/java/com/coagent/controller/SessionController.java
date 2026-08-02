@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -53,7 +54,8 @@ public class SessionController {
         return messageRepository.findBySessionIdOrderByCreatedAtAsc(sessionId);
     }
 
-    /** 删除会话：同时删除该会话下的所有消息 */
+    /** 删除会话：同时删除该会话下的所有消息（同一事务，保证原子性） */
+    @Transactional
     @DeleteMapping("/{sessionId}")
     public Map<String, Object> delete(@PathVariable String sessionId) {
         boolean existed = sessionRepository.findBySessionId(sessionId).isPresent();

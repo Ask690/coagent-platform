@@ -15,7 +15,7 @@ public class WebConfig implements WebMvcConfigurer {
         // 若后续加鉴权，可收紧为 allowedOrigins 白名单或经 COAGENT_CORS_ORIGIN 注入。
         registry.addMapping("/api/**")
                 .allowedOriginPatterns("*")
-                .allowedMethods("GET", "POST", "DELETE", "OPTIONS")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*");
     }
 }
