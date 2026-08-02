@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: coagent-backend
+
+  # ============ 数据库：默认 H2 文件库（零依赖、开箱即跑） ============
+  # 生产可切换 MySQL：application-mysql.yml 或 -Dspring.profiles.active=mysql
+  datasource:
+    url: jdbc:h2:file:./data/coagent;MODE=MySQL;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+  # ============ Spring AI：DeepSeek（OpenAI 兼容接口） ============
+  # 换模型只需改 base-url + model + api-key，全兼容
+  ai:
+    openai:
+      base-url: ${AI_BASE_URL:https://api.deepseek.com}
+      # 空 key 占位：mock 模式下不调用真实 API；接入真实模型时设置 DEEPSEEK_API_KEY
+      api-key: ${DEEPSEEK_API_KEY:sk-noop}
+      chat:
+        options:
+          model: ${AI_MODEL:deepseek-chat}
+          temperature: 0.7
+          max-tokens: 1024
+
+# ============ CoAgent 自定义配置 ============
+coagent:
+  # mock=true：零 API Key 也能完整演示（内置 MockChatModel + 关键词路由兜底）
+  # mock=false：接入真实 DeepSeek（需配置 DEEPSEEK_API_KEY）
+  ai:
+    mock: ${COAGENT_MOCK:true}
+  rag:
+    # 检索方式：lexical=本地BM25词法检索(零依赖默认) | vector=向量检索(需另配 EmbeddingModel)
+    embedding-mode: ${RAG_MODE:lexical}
+    top-k: 3
+    chunk-size: 280
+    chunk-overlap: 60
+
+logging:
+  level:
+    root: info
+    org.springframework.ai: info
