@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, UploadFilled, Document, Delete } from '@element-plus/icons-vue'
 import SessionSidebar from './components/SessionSidebar.vue'
 import ChatPanel from './components/ChatPanel.vue'
 import AgentTimeline from './components/AgentTimeline.vue'
@@ -35,23 +35,35 @@ const SUGGESTIONS = [
 ]
 
 async function loadSessions() {
-  sessions.value = await getSessions()
+  try {
+    sessions.value = await getSessions()
+  } catch (err) {
+    ElMessage.error('加载会话列表失败：' + (err.message || '网络异常'))
+  }
 }
 
 async function newSession() {
-  const { sessionId } = await createSession()
-  currentSessionId.value = sessionId
-  messages.value = []
-  activity.value = []
-  await loadSessions()
+  try {
+    const { sessionId } = await createSession()
+    currentSessionId.value = sessionId
+    messages.value = []
+    activity.value = []
+    await loadSessions()
+  } catch (err) {
+    ElMessage.error('新建会话失败：' + (err.message || '网络异常'))
+  }
 }
 
 async function selectSession(id) {
   if (sending.value) return
   currentSessionId.value = id
   activity.value = []
-  const list = await getMessages(id)
-  messages.value = list.map((m) => ({ role: m.role, content: m.content }))
+  try {
+    const list = await getMessages(id)
+    messages.value = list.map((m) => ({ role: m.role, content: m.content }))
+  } catch (err) {
+    ElMessage.error('加载消息失败：' + (err.message || '网络异常'))
+  }
 }
 
 function send() {
