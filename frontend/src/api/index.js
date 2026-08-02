@@ -15,6 +15,18 @@ export async function getMessages(sessionId) {
   return (await fetch(`${BASE}/sessions/${sessionId}/messages`)).json()
 }
 
+export async function deleteSession(sessionId) {
+  return fetch(`${BASE}/sessions/${sessionId}`, { method: 'DELETE' })
+}
+
+export async function pinSession(sessionId, pinned) {
+  return fetch(`${BASE}/sessions/${sessionId}/pin`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pinned }),
+  })
+}
+
 // ---------- 工单 ----------
 export async function getTickets() {
   return (await fetch(`${BASE}/tickets`)).json()

@@ -1,12 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, UploadFilled, Document, Delete } from '@element-plus/icons-vue'
 import SessionSidebar from './components/SessionSidebar.vue'
 import ChatPanel from './components/ChatPanel.vue'
 import AgentTimeline from './components/AgentTimeline.vue'
 import {
-  getSessions, createSession, getMessages,
+  getSessions, createSession, getMessages, deleteSession, pinSession,
   getTickets, getDocuments, uploadDocument, deleteDocument,
   chatStream,
 } from './api'
@@ -63,6 +63,44 @@ async function selectSession(id) {
     messages.value = list.map((m) => ({ role: m.role, content: m.content }))
   } catch (err) {
     ElMessage.error('加载消息失败：' + (err.message || '网络异常'))
+  }
+}
+
+/** 删除会话：确认后删除并刷新列表，若删除的是当前会话则清空面板 */
+async function handleDeleteSession(id, title) {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除会话「${title || id}」吗？其下的聊天记录将一并删除，不可恢复。`,
+      '删除会话',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+  } catch {
+    return // 用户取消
+  }
+  try {
+    const res = await deleteSession(id)
+    if (!res.ok) throw new Error('HTTP ' + res.status)
+    ElMessage.success('会话已删除')
+    if (currentSessionId.value === id) {
+      currentSessionId.value = null
+      messages.value = []
+      activity.value = []
+    }
+    await loadSessions()
+  } catch (err) {
+    ElMessage.error('删除失败：' + (err.message || '网络异常'))
+  }
+}
+
+/** 置顶 / 取消置顶会话 */
+async function handlePinSession(id, pinned) {
+  try {
+    const res = await pinSession(id, pinned)
+    if (!res.ok) throw new Error('HTTP ' + res.status)
+    ElMessage.success(pinned ? '已置顶' : '已取消置顶')
+    await loadSessions()
+  } catch (err) {
+    ElMessage.error('操作失败：' + (err.message || '网络异常'))
   }
 }
 
@@ -251,6 +289,8 @@ function formatTime(iso) {
         :current-id="currentSessionId"
         @create="newSession"
         @select="selectSession"
+        @delete="handleDeleteSession"
+        @pin="handlePinSession"
       />
 
       <main class="main">

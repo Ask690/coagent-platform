@@ -26,6 +26,10 @@ public class ChatSession {
     @Column(length = 200)
     private String title;
 
+    /** 是否置顶：置顶会话优先展示在列表顶部 */
+    @Column(nullable = false)
+    private boolean pinned = false;
+
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -37,6 +41,8 @@ public class ChatSession {
     public void setSessionId(String sessionId) { this.sessionId = sessionId; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
+    public boolean isPinned() { return pinned; }
+    public void setPinned(boolean pinned) { this.pinned = pinned; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

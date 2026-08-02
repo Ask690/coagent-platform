@@ -1,11 +1,11 @@
 <script setup>
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Delete, Top } from '@element-plus/icons-vue'
 
 defineProps({
   sessions: { type: Array, default: () => [] },
   currentId: { type: String, default: null },
 })
-defineEmits(['create', 'select'])
+const emit = defineEmits(['create', 'select', 'delete', 'pin'])
 
 function formatTime(iso) {
   if (!iso) return ''
@@ -36,14 +36,27 @@ function formatTime(iso) {
         v-for="(s, i) in sessions"
         :key="s.sessionId"
         class="item"
-        :class="{ active: s.sessionId === currentId }"
+        :class="{ active: s.sessionId === currentId, pinned: s.pinned }"
         :style="{ animationDelay: (i * 40) + 'ms' }"
         @click="$emit('select', s.sessionId)"
       >
         <div class="item-bar"></div>
         <div class="item-body">
-          <div class="item-title">{{ s.title }}</div>
+          <div class="item-title">
+            <span v-if="s.pinned" class="pin-badge" title="已置顶">📌</span>{{ s.title }}
+          </div>
           <div class="item-time">{{ formatTime(s.updatedAt) }}</div>
+        </div>
+        <!-- hover 操作按钮 -->
+        <div class="item-actions" @click.stop>
+          <button class="act-btn pin-btn" :title="s.pinned ? '取消置顶' : '置顶'"
+            @click="$emit('pin', s.sessionId, !s.pinned)">
+            <el-icon :size="13"><Top /></el-icon>
+          </button>
+          <button class="act-btn del-btn" title="删除会话"
+            @click="$emit('delete', s.sessionId, s.title)">
+            <el-icon :size="13"><Delete /></el-icon>
+          </button>
         </div>
       </div>
       <div v-if="!sessions.length" class="empty">暂无会话，点击上方新建</div>
@@ -167,6 +180,19 @@ function formatTime(iso) {
 .item.active {
   background: #0d1b2a;
 }
+.item.pinned {
+  background: rgba(255, 153, 0, 0.06);
+}
+.item.pinned.active {
+  background: #1a2436;
+}
+.item.pinned .item-title {
+  color: var(--amz-yellow);
+}
+.pin-badge {
+  margin-right: 3px;
+  font-size: 11px;
+}
 .item-bar {
   position: absolute;
   left: 0;
@@ -199,6 +225,43 @@ function formatTime(iso) {
   font-size: 11px;
   color: #64748b;
   margin-top: 3px;
+}
+
+/* hover 操作按钮：置顶 / 删除 */
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.item:hover .item-actions,
+.item.active .item-actions {
+  opacity: 1;
+}
+.act-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+.act-btn:hover {
+  transform: scale(1.1);
+}
+.pin-btn:hover {
+  background: rgba(255, 153, 0, 0.18);
+  color: var(--amz-yellow);
+}
+.del-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
 }
 .empty {
   color: #64748b;
