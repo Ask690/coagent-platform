@@ -17,21 +17,30 @@ public class IndexStore {
     public record Chunk(String id, String docName, String text) {}
 
     private final List<Chunk> chunks = new CopyOnWriteArrayList<>();
+    private volatile long version = 0;
 
     public void addAll(List<Chunk> newChunks) {
         chunks.addAll(newChunks);
+        version++;
     }
 
     public void removeByDoc(String docName) {
         chunks.removeIf(c -> c.docName().equals(docName));
+        version++;
     }
 
     public void rebuild(List<Chunk> newChunks) {
         chunks.clear();
         chunks.addAll(newChunks);
+        version++;
     }
 
     public List<Chunk> all() {
         return List.copyOf(chunks);
+    }
+
+    /** 内容版本号：变更时自增，供检索器判断是否需要重建索引/向量缓存 */
+    public long version() {
+        return version;
     }
 }

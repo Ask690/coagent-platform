@@ -36,6 +36,7 @@ public class AgentOrchestrator {
     private final KnowledgeAgent knowledgeAgent;
     private final BusinessAgent businessAgent;
     private final TicketAgent ticketAgent;
+    private final AgentChainService chainService;
     private final ChatClient chatClient;
     private final ChatSessionRepository sessionRepository;
     private final ChatMessageRepository messageRepository;
@@ -44,6 +45,7 @@ public class AgentOrchestrator {
                              KnowledgeAgent knowledgeAgent,
                              BusinessAgent businessAgent,
                              TicketAgent ticketAgent,
+                             AgentChainService chainService,
                              ChatClient chatClient,
                              ChatSessionRepository sessionRepository,
                              ChatMessageRepository messageRepository) {
@@ -51,6 +53,7 @@ public class AgentOrchestrator {
         this.knowledgeAgent = knowledgeAgent;
         this.businessAgent = businessAgent;
         this.ticketAgent = ticketAgent;
+        this.chainService = chainService;
         this.chatClient = chatClient;
         this.sessionRepository = sessionRepository;
         this.messageRepository = messageRepository;
@@ -106,7 +109,7 @@ public class AgentOrchestrator {
         );
     }
 
-    /** 按路由结果分派给对应专精 Agent */
+    /** 按路由结果分派给对应专精 Agent（或组合链路） */
     private Flux<ChatEvent> dispatch(RoutingDecision decision, String userMessage, String history) {
         return switch (decision.intent()) {
             case BUSINESS -> wrap("业务查询Agent", "调用工具查询订单 / 物流",
@@ -115,6 +118,7 @@ public class AgentOrchestrator {
                     ticketAgent.handle(userMessage, history));
             case DIRECT -> wrap("客服Agent", "直接友好回复",
                     directAnswer(userMessage));
+            case CHAIN -> chainService.runChain(userMessage, history);
             case KNOWLEDGE -> wrap("知识库Agent", "RAG 检索知识库后作答",
                     knowledgeAgent.handle(userMessage, history));
         };

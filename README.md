@@ -20,6 +20,7 @@
 |---|---|---|
 | 帮我查订单 JD2025002 到哪了 | BUSINESS | 工具调用 + 流式回复 |
 | 七天无理由退货政策是什么 | KNOWLEDGE | RAG 检索 + 基于上下文作答 |
+| 我订单 JD2025001 能退货吗 | **CHAIN** | **多步链路**：查订单 → 检索政策 → 综合分析 |
 | 我要投诉！物流太慢 | TICKET | 自动创建工单并落库 |
 | 你好呀 | DIRECT | 直接友好回复 |
 
@@ -54,15 +55,20 @@
 │   │  编排者 Router（意图路由）                                            │ │
 │   │   ├─ LlmRouter      —— DeepSeek 结构化输出 JSON（mock=false 启用）     │ │
 │   │   └─ KeywordRouter  —— 关键词规则兜底（mock=true 启用，离线可用）      │ │
-│   └───────────────────────┬──────────────────────────────────────────────┘ │
-│           ┌───────────────┼───────────────────────────────┐                │
-│           ▼               ▼                               ▼                │
-│   知识库Agent       业务查询Agent                     工单Agent             │
-│   (RAG检索+生成)     (工具调用:OrderTool)             (工具调用:TicketTool) │
-│         │                │                                │                │
-│         ▼                ▼                                ▼                │
-│   Retriever(LexicalBM25) OrderTool              TicketTool(落库)          │
-│   DocumentService        @Tool 注解              工单号生成(日期+自增ID)   │
+│   └──────┬──────────────────┬────────────────────────────────────────────┘ │
+│          ▼                  ▼  CHAIN(组合场景)                             │
+│   单Agent 分派         AgentChainService（多步链路编排）                    │
+│   ┌────────────┐       ┌──────────────────────────────────────────────┐  │
+│   │知识库Agent  │       │ Step1 业务查询Agent → 订单状态(工具)            │  │
+│   │业务查询Agent│       │ Step2 知识库Agent   → 退货政策(RAG)            │  │
+│   │工单Agent    │       │ Step3 汇总Agent     → 综合分析(生成)           │  │
+│   └────────────┘       └──────────────────────────────────────────────┘  │
+│         │                                │                                │
+│         ▼                                ▼                                │
+│   Retriever(可切换)               OrderTool / TicketTool                   │
+│   ├─ LexicalRetriever(BM25)        @Tool 注解                             │
+│   └─ VectorRetriever(余弦相似度)   工单号生成(日期+自增ID)                  │
+│       └─ MockEmbeddingModel(离线)                                          │
 │                                                                            │
 │   H2/MySQL（会话 / 消息 / 工单 / 知识文档）                                 │
 └────────────────────────────────────────────────────────────────────────────┘
@@ -128,7 +134,8 @@ export AI_BASE_URL=https://api.deepseek.com
 | `DEEPSEEK_API_KEY` | `sk-noop` | 真实模型 API Key |
 | `AI_MODEL` | `deepseek-chat` | 模型名，可换 `deepseek-reasoner` 等 |
 | `AI_BASE_URL` | `https://api.deepseek.com` | OpenAI 兼容接口地址 |
-| `RAG_MODE` | `lexical` | 检索方式：`lexical` / `vector`(预留) |
+| `RAG_MODE` | `lexical` | 检索方式：`lexical`(BM25) / `vector`(余弦相似度，离线 MockEmbedding) |
+| `AI_EMBEDDING_PROVIDER` | `mock` | embedding 提供方：`mock`(离线) / `openai`(真实兼容服务) |
 
 ### 切换 MySQL
 
@@ -142,10 +149,11 @@ cd backend
 
 ## 💡 项目亮点（面试讲稿要点）
 
-1. **真正的多智能体协作**：Supervisor 统一编排 + 三个专精 Agent，各 Agent 职责单一、提示词独立，符合 Agent 工程化的最佳实践。
+1. **真正的多智能体协作**：Supervisor 统一编排 + 专精 Agent + 多步链路（Chain），各 Agent 职责单一、提示词独立，符合 Agent 工程化的最佳实践。
 2. **双路由降级设计**：`LlmRouter`（大模型结构化路由）+ `KeywordRouter`（关键词兜底）。模型不可用时系统仍可用——这是企业系统的关键工程素质。
 3. **可观测性**：工具调用由编排层驱动，全程通过 SSE 事件流暴露到前端（`tool_call → tool_result`），非黑盒。
-4. **RAG 可平滑演进**：`Retriever` 抽象接口，当前 BM25 词法检索离线可跑；生产可替换向量检索（EmbeddingModel + VectorStore），实现类即插即用。
+4. **多步链路编排**：当单个 Agent 无法回答（"我的订单能退吗"既需订单数据又需退货政策），编排器自动走「查订单 → 检索政策 → 综合分析」链路，每步独立可观测。
+5. **RAG 双检索可切换**：`Retriever` 抽象接口下实现 BM25 词法检索与向量检索（余弦相似度）两套，经 `RAG_MODE` 一键切换，向量检索离线用 MockEmbedding 也可跑。
 5. **SSE 流式**：`Flux<ServerSentEvent>` + 前端 fetch ReadableStream 逐事件解析，打字机式体验。
 6. **数据落地**：会话/消息/工单/知识文档全部持久化（H2/MySQL 双支持），服务重启数据不丢。
 7. **可测试、可降级**：Mock 模式输出确定性内容，接口稳定，可写集成测试。
@@ -160,6 +168,10 @@ cd backend
 
 - **检索为什么先用 BM25？**
   零外部依赖、离线可跑、演示稳定。`Retriever` 是接口，生产替换向量检索只需新增一个实现类——先跑通再演进，避免一开始就引入 embedding 模型和向量库的复杂度。
+- **多步链路和单 Agent 有什么区别？**
+  单 Agent 用一个 Prompt 承担全部任务，指令会冲突、上下文会膨胀。链路把「取数」和「推理」拆成独立步骤：Step1 拿事实（订单状态），Step2 拿规则（退货政策），Step3 才让汇总 Agent 做判断。每步结果结构化传递、可单独测试，这是 Agent 工程里「工具调用 + 多步推理」的经典范式。
+- **向量检索离线怎么跑？**
+  用 MockEmbeddingModel（本地词袋 hash 伪向量）跑通「向量化 → 余弦排序」整条链路；接真实 Embedding 服务只需 `AI_EMBEDDING_PROVIDER=openai` + 配置 api-key，Mock 自动失效。
 
 - **如何保证多轮对话的记忆？**
   每轮对话持久化到 `chat_message` 表，Agent 生成时取最近 N 条历史拼入上下文；生产可替换为 `MessageChatMemoryAdvisor` 或外部记忆。

@@ -65,6 +65,13 @@ public class MockChatModel implements ChatModel {
         String toolResult = extractBlock(userText, "【工具结果】", "【/工具结果】");
         String snippet = firstSentence(knowledge.isEmpty() ? toolResult : knowledge);
 
+        // ===== 链路汇总场景：汇总Agent 同时收到订单数据与政策资料 =====
+        String orderBlock = extractBlock(userText, "【订单数据】", "【/订单数据】");
+        String policyBlock = extractBlock(userText, "【政策资料】", "【/政策资料】");
+        if (!orderBlock.isEmpty() && !policyBlock.isEmpty()) {
+            return buildChainSummary(orderBlock, policyBlock);
+        }
+
         if (toolResult.contains("工单") && (current.contains("工单") || current.contains("投诉"))) {
             return "好的，已为您自动创建售后工单。" + wrap("工单编号 " + firstSentence(toolResult) + " 已生成，客服团队将在 1 个工作日内跟进处理。") +
                     "您也可以在左侧「工单中心」查看进度。请问还有其他可以帮您的吗？";
@@ -91,6 +98,26 @@ public class MockChatModel implements ChatModel {
             return "根据知识库检索，为您找到相关信息：" + wrap(snippet) + "如需更详细内容，可以继续追问。";
         }
         return "收到您的问题，我已经记录了。您可以试着问我「订单物流」「退货政策」「开发票」「投诉」等，我会调用对应的 Agent 与工具为您处理。";
+    }
+
+    /** 链路汇总：综合订单状态与退换政策，给出结构化结论 */
+    private String buildChainSummary(String orderBlock, String policyBlock) {
+        String orderSentence = firstSentence(orderBlock);
+        String policySentence = firstSentence(policyBlock);
+        StringBuilder sb = new StringBuilder("已为您综合查询订单与相关政策，结论如下：\n\n");
+        sb.append("【订单状态】").append(orderSentence).append("\n\n");
+        sb.append("【适用政策】").append(policySentence).append("\n\n");
+        sb.append("【结论与建议】\n");
+        if (orderBlock.contains("已签收")) {
+            sb.append("您的订单已签收，仍在七（7）天无理由退货期内的话，可直接发起退货申请；超过期限则建议提供质量凭证申请换货或创建人工工单。");
+        } else if (orderBlock.contains("运输中") || orderBlock.contains("已发货") || orderBlock.contains("派送中")) {
+            sb.append("您的订单尚未签收，暂不符合退货条件，建议先签收验货；如商品到货后有问题，可在签收后按政策申请退换。");
+        } else if (orderBlock.contains("未查询到") || orderBlock.contains("未找到")) {
+            sb.append("请先核对订单号（格式如 JD2025001），确认后可为您查询具体退换条件。");
+        } else {
+            sb.append("请核对订单当前状态后，在订单详情页发起退货/换货申请，或联系在线客服协助。");
+        }
+        return sb.toString();
     }
 
     private String wrap(String s) {

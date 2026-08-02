@@ -27,6 +27,7 @@ public class LlmRouter implements Router {
             BUSINESS=查询订单/物流/配送等业务数据
             TICKET=投诉、不满或需人工介入（应创建工单）
             DIRECT=寒暄问候或闲聊，直接友好回复即可
+            CHAIN=同时涉及"具体订单数据"与"售后政策/流程"的组合问题（如"我这个订单能退吗"），需先查订单再结合政策综合答复
             """;
 
     private final ChatClient chatClient;

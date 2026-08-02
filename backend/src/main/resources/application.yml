@@ -29,6 +29,10 @@ spring:
   # ============ Spring AI：DeepSeek（OpenAI 兼容接口） ============
   # 换模型只需改 base-url + model + api-key，全兼容
   ai:
+    model:
+      # embedding 提供方：mock=本地离线向量(默认) | openai=真实兼容服务(需配置 api-key)
+      # 设为 mock 会关闭 OpenAI Embedding 自动配置，避免与 MockEmbeddingModel 冲突
+      embedding: ${AI_EMBEDDING_PROVIDER:mock}
     openai:
       base-url: ${AI_BASE_URL:https://api.deepseek.com}
       # 空 key 占位：mock 模式下不调用真实 API；接入真实模型时设置 DEEPSEEK_API_KEY

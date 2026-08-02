@@ -15,6 +15,14 @@ public class KeywordRouter implements Router {
     public RoutingDecision route(String userMessage) {
         String msg = userMessage == null ? "" : userMessage;
 
+        // 组合场景：订单/物流 与 售后/政策 同时出现 → 多步链路（先查订单，再检索政策，最后汇总）
+        boolean orderRelated = containsAny(msg, "订单", "物流", "发货", "快递", "到哪", "配送", "单号", "JD");
+        boolean policyAfterSales = containsAny(msg, "退货", "退款", "换货", "售后", "赔偿", "保修",
+                "政策", "能退", "可以退", "怎么退", "多久到", "没到");
+        if (orderRelated && policyAfterSales && containsAny(msg, "订单", "JD", "单号")) {
+            return RoutingDecision.of(Intent.CHAIN, "组合场景：需先查订单状态，再结合退换政策综合答复");
+        }
+
         // 工单 / 投诉 / 转人工
         if (containsAny(msg, "工单", "投诉", "人工", "转人工", "上报", "申诉", "举报")) {
             return RoutingDecision.of(Intent.TICKET, "用户表达不满或需人工介入，创建工单");

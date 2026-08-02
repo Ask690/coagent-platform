@@ -11,6 +11,7 @@ const INTENT_META = {
   BUSINESS: { label: '业务查询', color: '#d97706' },
   TICKET: { label: '工单', color: '#dc2626' },
   DIRECT: { label: '直接回复', color: '#16a34a' },
+  CHAIN: { label: '多步链路', color: '#7c3aed' },
 }
 
 function intentLabel(intent) {

@@ -1,6 +1,10 @@
 package com.coagent.rag;
 
 import com.coagent.rag.IndexStore.Chunk;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -15,15 +19,23 @@ import java.util.Map;
  * 中文走 bigram 分词，英文走单词，零外部依赖。
  */
 @Component
+@ConditionalOnProperty(name = "coagent.rag.embedding-mode", havingValue = "lexical", matchIfMissing = true)
 public class LexicalRetriever implements Retriever {
 
     private static final double K1 = 1.5;
     private static final double B = 0.75;
 
+    private static final Logger log = LoggerFactory.getLogger(LexicalRetriever.class);
+
     private final IndexStore indexStore;
 
     public LexicalRetriever(IndexStore indexStore) {
         this.indexStore = indexStore;
+    }
+
+    @PostConstruct
+    void logActive() {
+        log.info("检索器已启用：LexicalRetriever（BM25 词法检索）");
     }
 
     @Override
