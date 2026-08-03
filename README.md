@@ -3,7 +3,6 @@
 > 基于 **Java 21 + Spring Boot 3.5 + Spring AI 1.0 + DeepSeek + Vue3** 的多智能体客服平台。
 > **编排者（Supervisor）调度专精 Agent 协作**，SSE 流式实时可见每一步；**开箱即跑，零 API Key 也能完整体验**。
 
-![GitHub stars](https://img.shields.io/github/stars/Ask690/coagent-platform?style=social&label=Stars)
 ![MIT License](https://img.shields.io/badge/License-MIT-blue)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.15-brightgreen)
 ![Spring AI](https://img.shields.io/badge/Spring%20AI-1.0.9-6db33f)
@@ -128,14 +127,6 @@ frontend/src/
 ```
 
 ---
-
-## 🤝 一起完善
-
-欢迎提交 Issue / PR，一起把 Agent 架构做得更好。对多智能体编排感兴趣的朋友，欢迎在 GitHub 交流。
-
-## ⭐ 支持
-
-如果这个项目对你有帮助，点个 ⭐ **Star** 就是最大的支持！
 
 ## 📄 License
 
