@@ -1,4 +1,4 @@
-# CoAgent 🛒 多智能体协作客服平台
+# CoAgent
 
 > 基于 **Java 21 + Spring Boot 3.5 + Spring AI 1.0 + DeepSeek + Vue3** 的多智能体客服平台。
 > **编排者（Supervisor）调度专精 Agent 协作**，SSE 流式实时可见每一步；**开箱即跑，零 API Key 也能完整体验**。
